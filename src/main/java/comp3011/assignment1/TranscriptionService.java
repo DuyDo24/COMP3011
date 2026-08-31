@@ -18,13 +18,14 @@ import tools.jackson.databind.ObjectMapper;
 @Service
 public class TranscriptionService {
 
-    private static final String OPENAI_URL = "https://api.openai.com/v1/audio/transcriptions";
+	private static final String OPENAI_URL = "https://api.openai.com/v1/audio/transcriptions";
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final TokenStats tokenStats;
 
-    public TranscriptionService(TokenStats tokenStats) {
+    public TranscriptionService(RestTemplate restTemplate, TokenStats tokenStats) {
+        this.restTemplate = restTemplate;
         this.tokenStats = tokenStats;
     }
 
