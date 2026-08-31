@@ -10,7 +10,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @RestController
 @RequestMapping("/api/v1/admin")
@@ -18,12 +17,13 @@ public class AdminController {
 
     private final AppStartTime startTime;
     private final ApplicationContext context;
-    private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
+    private final ShutdownState shutdownState;
 
     @Autowired
-    public AdminController(AppStartTime startTime, ApplicationContext context) {
+    public AdminController(AppStartTime startTime, ApplicationContext context, ShutdownState shutdownState) {
         this.startTime = startTime;
         this.context = context;
+        this.shutdownState = shutdownState;
     }
 
     @GetMapping("/uptime")
@@ -42,11 +42,11 @@ public class AdminController {
 
     @PostMapping("/shutdown")
     public ResponseEntity<?> shutdown() {
-        if (!shuttingDown.compareAndSet(false, true)) {
+        if (!shutdownState.tryBeginShutdown()) {
             ErrorResponse error = new ErrorResponse(
-                409, "Conflict",
-                "Graceful shutdown is already in progress.",
-                "/api/v1/admin/shutdown"
+                    409, "Conflict",
+                    "Graceful shutdown is already in progress.",
+                    "/api/v1/admin/shutdown"
             );
             return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
         }
@@ -54,7 +54,6 @@ public class AdminController {
         Map<String, String> body = new LinkedHashMap<>();
         body.put("message", "Graceful shutdown requested.");
 
-        // Delay shutdown slightly so this response can actually be sent first
         new Thread(() -> {
             try {
                 Thread.sleep(500);
